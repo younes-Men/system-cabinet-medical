@@ -93,13 +93,26 @@ app.post('/api/users', async (req, res) => {
   try {
     const { username, password, role, nom, prenom } = req.body;
     
-    if (!username || !password) {
-      return res.status(400).json({ error: 'Nom d\'utilisateur et mot de passe requis' });
+    if (!username || !username.trim()) {
+      return res.status(400).json({ error: 'Nom d\'utilisateur requis' });
     }
+    
+    if (!password || !password.trim()) {
+      return res.status(400).json({ error: 'Mot de passe requis' });
+    }
+
+    // Nettoyer les valeurs : convertir les chaînes vides en null
+    const userData = {
+      username: username.trim(),
+      password: password.trim(),
+      role: role || 'assistant',
+      nom: nom && nom.trim() ? nom.trim() : null,
+      prenom: prenom && prenom.trim() ? prenom.trim() : null
+    };
 
     const { data, error } = await supabase
       .from('users')
-      .insert([{ username, password, role: role || 'assistant', nom, prenom }])
+      .insert([userData])
       .select('id, username, role, nom, prenom, actif, created_at, updated_at')
       .single();
     
@@ -115,10 +128,10 @@ app.put('/api/users/:id', async (req, res) => {
     const { password, role, nom, prenom, actif } = req.body;
     const updateData = {};
     
-    if (password) updateData.password = password;
+    if (password && password.trim()) updateData.password = password.trim();
     if (role) updateData.role = role;
-    if (nom !== undefined) updateData.nom = nom;
-    if (prenom !== undefined) updateData.prenom = prenom;
+    if (nom !== undefined) updateData.nom = nom && nom.trim() ? nom.trim() : null;
+    if (prenom !== undefined) updateData.prenom = prenom && prenom.trim() ? prenom.trim() : null;
     if (actif !== undefined) updateData.actif = actif;
 
     const { data, error } = await supabase
@@ -313,7 +326,7 @@ app.get('/api/rendezvous', async (req, res) => {
     const { date } = req.query;
     let query = supabase
       .from('rendezvous')
-      .select('*, patients(*)')
+      .select('*')
       .order('date_rdv', { ascending: true })
       .order('heure_rdv', { ascending: true });
     
@@ -335,7 +348,7 @@ app.post('/api/rendezvous', async (req, res) => {
     const { data, error } = await supabase
       .from('rendezvous')
       .insert([req.body])
-      .select('*, patients(*)')
+      .select('*')
       .single();
     
     if (error) throw error;
@@ -351,7 +364,7 @@ app.put('/api/rendezvous/:id', async (req, res) => {
       .from('rendezvous')
       .update(req.body)
       .eq('id', req.params.id)
-      .select('*, patients(*)')
+      .select('*')
       .single();
     
     if (error) throw error;
@@ -533,7 +546,7 @@ app.get('/api/statistics', async (req, res) => {
     // Rendez-vous du jour
     const { data: rdvToday, error: err3 } = await supabase
       .from('rendezvous')
-      .select('*, patients(*)')
+      .select('*')
       .eq('date_rdv', today)
       .order('heure_rdv', { ascending: true });
     

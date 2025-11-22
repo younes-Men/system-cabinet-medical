@@ -6,7 +6,6 @@ import { fr } from 'date-fns/locale/fr';
 
 function Controles() {
   const [controles, setControles] = useState([]);
-  const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [showModal, setShowModal] = useState(false);
@@ -18,20 +17,60 @@ function Controles() {
     motif: '',
     notes: ''
   });
+  const [patientSearch, setPatientSearch] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState(null);
 
   useEffect(() => {
-    fetchPatients();
     fetchControles();
   }, [selectedDate]);
 
-  const fetchPatients = async () => {
-    try {
-      const response = await fetch(`${API_URL}/patients`);
-      const data = await response.json();
-      setPatients(data);
-    } catch (error) {
-      console.error('Erreur lors du chargement des patients:', error);
+  const searchPatients = async (query) => {
+    if (!query || query.trim().length < 2) {
+      setSearchResults([]);
+      setShowDropdown(false);
+      return;
     }
+
+    try {
+      const response = await fetch(`${API_URL}/patients/search/${encodeURIComponent(query)}`);
+      const data = await response.json();
+      setSearchResults(data);
+      setShowDropdown(true);
+    } catch (error) {
+      console.error('Erreur lors de la recherche:', error);
+      setSearchResults([]);
+    }
+  };
+
+  const handlePatientSearchChange = (e) => {
+    const value = e.target.value;
+    
+    // Si un patient est déjà sélectionné et que l'utilisateur modifie le champ,
+    // on réinitialise la sélection pour permettre une nouvelle recherche
+    if (selectedPatient && value !== `${selectedPatient.nom} ${selectedPatient.prenom}`) {
+      setSelectedPatient(null);
+      setFormData({ ...formData, patient_id: '' });
+    }
+    
+    setPatientSearch(value);
+    searchPatients(value);
+    
+    // Si le champ est vidé, réinitialiser la sélection
+    if (!value) {
+      setSelectedPatient(null);
+      setFormData({ ...formData, patient_id: '' });
+    }
+  };
+
+  const selectPatient = (patient) => {
+    setSelectedPatient(patient);
+    // Afficher le nom complet du patient sélectionné
+    setPatientSearch(`${patient.nom} ${patient.prenom}`);
+    setFormData({ ...formData, patient_id: patient.id });
+    setShowDropdown(false);
+    setSearchResults([]);
   };
 
   const fetchControles = async () => {
@@ -48,6 +87,13 @@ function Controles() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validation : vérifier qu'un patient est sélectionné
+    if (!formData.patient_id || !selectedPatient) {
+      alert('Veuillez sélectionner un patient');
+      return;
+    }
+    
     try {
       const url = editingControle
         ? `${API_URL}/controles/${editingControle.id}`
@@ -71,6 +117,10 @@ function Controles() {
           motif: '',
           notes: ''
         });
+        setPatientSearch('');
+        setSelectedPatient(null);
+        setSearchResults([]);
+        setShowDropdown(false);
         fetchControles();
       }
     } catch (error) {
@@ -81,6 +131,9 @@ function Controles() {
 
   const handleEdit = (controle) => {
     setEditingControle(controle);
+    const patient = controle.patients;
+    setSelectedPatient(patient);
+    setPatientSearch(patient ? `${patient.nom} ${patient.prenom}` : '');
     setFormData({
       patient_id: controle.patient_id,
       date_controle: controle.date_controle,
@@ -140,6 +193,10 @@ function Controles() {
               motif: '',
               notes: ''
             });
+            setPatientSearch('');
+            setSelectedPatient(null);
+            setSearchResults([]);
+            setShowDropdown(false);
             setShowModal(true);
           }}
           className="bg-primary-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors flex items-center gap-2 shadow-md"
@@ -252,23 +309,80 @@ function Controles() {
             </h2>
             
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
+              <div className="relative">
                 <label className="block text-gray-700 font-medium mb-2">
                   Patient *
                 </label>
-                <select
-                  required
-                  value={formData.patient_id}
-                  onChange={(e) => setFormData({ ...formData, patient_id: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                >
-                  <option value="">Sélectionner un patient</option>
-                  {patients.map((patient) => (
-                    <option key={patient.id} value={patient.id}>
-                      {patient.nom} {patient.prenom} - {patient.cin}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    value={patientSearch}
+                    onChange={handlePatientSearchChange}
+                    onFocus={() => {
+                      if (searchResults.length > 0) {
+                        setShowDropdown(true);
+                      }
+                    }}
+                    onBlur={() => {
+                      // Délai pour permettre le clic sur un résultat
+                      setTimeout(() => {
+                        setShowDropdown(false);
+                        // Si un patient est sélectionné, restaurer le nom complet
+                        if (selectedPatient && patientSearch !== `${selectedPatient.nom} ${selectedPatient.prenom}`) {
+                          setPatientSearch(`${selectedPatient.nom} ${selectedPatient.prenom}`);
+                        }
+                      }, 200);
+                    }}
+                    placeholder="Tapez le nom du patient..."
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none ${
+                      selectedPatient 
+                        ? 'border-green-500 bg-green-50' 
+                        : 'border-gray-300'
+                    }`}
+                  />
+                  {selectedPatient && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      <span className="text-green-600 text-sm font-semibold">✓ Sélectionné</span>
+                    </div>
+                  )}
+                </div>
+                {!formData.patient_id && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Commencez à taper le nom ou prénom du patient
+                  </p>
+                )}
+                {selectedPatient && (
+                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-sm text-green-800">
+                      <span className="font-semibold">Patient sélectionné:</span> {selectedPatient.nom} {selectedPatient.prenom} 
+                      {selectedPatient.telephone && ` - Tél: ${selectedPatient.telephone}`}
+                    </p>
+                  </div>
+                )}
+                {showDropdown && searchResults.length > 0 && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {searchResults.map((patient) => (
+                      <div
+                        key={patient.id}
+                        onClick={() => selectPatient(patient)}
+                        className="px-4 py-3 hover:bg-primary-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                      >
+                        <div className="font-semibold text-gray-800">
+                          {patient.nom} {patient.prenom}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          CIN: {patient.cin} | Tél: {patient.telephone}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {showDropdown && searchResults.length === 0 && patientSearch.length >= 2 && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-4 text-center text-gray-500">
+                    Aucun patient trouvé
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -335,6 +449,10 @@ function Controles() {
                   onClick={() => {
                     setShowModal(false);
                     setEditingControle(null);
+                    setPatientSearch('');
+                    setSelectedPatient(null);
+                    setSearchResults([]);
+                    setShowDropdown(false);
                   }}
                   className="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
                 >

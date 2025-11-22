@@ -33,6 +33,15 @@ function Users() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validation pour nouveau utilisateur
+    if (!editingUser) {
+      if (!formData.username || !formData.password) {
+        alert('Le nom d\'utilisateur et le mot de passe sont requis');
+        return;
+      }
+    }
+    
     try {
       const url = editingUser 
         ? `${API_URL}/users/${editingUser.id}`
@@ -40,15 +49,36 @@ function Users() {
       
       const method = editingUser ? 'PUT' : 'POST';
       
-      const body = editingUser 
-        ? { ...formData, password: formData.password || undefined }
-        : formData;
+      // Préparer le body en nettoyant les champs vides
+      let body;
+      if (editingUser) {
+        // Pour la modification, ne pas envoyer password si vide
+        body = {
+          role: formData.role,
+          nom: formData.nom || null,
+          prenom: formData.prenom || null
+        };
+        if (formData.password && formData.password.trim() !== '') {
+          body.password = formData.password;
+        }
+      } else {
+        // Pour l'ajout, envoyer tous les champs requis
+        body = {
+          username: formData.username.trim(),
+          password: formData.password,
+          role: formData.role || 'assistant',
+          nom: formData.nom?.trim() || null,
+          prenom: formData.prenom?.trim() || null
+        };
+      }
 
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
+
+      const responseData = await response.json();
 
       if (response.ok) {
         setShowModal(false);
@@ -61,13 +91,13 @@ function Users() {
           prenom: ''
         });
         fetchUsers();
+        alert(editingUser ? 'Utilisateur modifié avec succès' : 'Utilisateur ajouté avec succès');
       } else {
-        const error = await response.json();
-        alert(error.error || 'Erreur lors de la sauvegarde');
+        alert(responseData.error || 'Erreur lors de la sauvegarde');
       }
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);
-      alert('Erreur lors de la sauvegarde de l\'utilisateur');
+      alert('Erreur lors de la sauvegarde de l\'utilisateur: ' + error.message);
     }
   };
 
@@ -314,6 +344,13 @@ function Users() {
                   onClick={() => {
                     setShowModal(false);
                     setEditingUser(null);
+                    setFormData({
+                      username: '',
+                      password: '',
+                      role: 'assistant',
+                      nom: '',
+                      prenom: ''
+                    });
                   }}
                   className="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
                 >

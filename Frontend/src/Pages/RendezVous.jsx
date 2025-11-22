@@ -6,13 +6,14 @@ import { fr } from 'date-fns/locale/fr';
 
 function RendezVous() {
   const [rendezvous, setRendezVous] = useState([]);
-  const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [showModal, setShowModal] = useState(false);
   const [editingRdv, setEditingRdv] = useState(null);
   const [formData, setFormData] = useState({
-    patient_id: '',
+    nom: '',
+    prenom: '',
+    telephone: '',
     date_rdv: new Date().toISOString().split('T')[0],
     heure_rdv: '',
     motif: '',
@@ -20,19 +21,8 @@ function RendezVous() {
   });
 
   useEffect(() => {
-    fetchPatients();
     fetchRendezVous();
   }, [selectedDate]);
-
-  const fetchPatients = async () => {
-    try {
-      const response = await fetch(`${API_URL}/patients`);
-      const data = await response.json();
-      setPatients(data);
-    } catch (error) {
-      console.error('Erreur lors du chargement des patients:', error);
-    }
-  };
 
   const fetchRendezVous = async () => {
     try {
@@ -65,7 +55,9 @@ function RendezVous() {
         setShowModal(false);
         setEditingRdv(null);
         setFormData({
-          patient_id: '',
+          nom: '',
+          prenom: '',
+          telephone: '',
           date_rdv: selectedDate,
           heure_rdv: '',
           motif: '',
@@ -82,7 +74,9 @@ function RendezVous() {
   const handleEdit = (rdv) => {
     setEditingRdv(rdv);
     setFormData({
-      patient_id: rdv.patient_id,
+      nom: rdv.nom || '',
+      prenom: rdv.prenom || '',
+      telephone: rdv.telephone || '',
       date_rdv: rdv.date_rdv,
       heure_rdv: rdv.heure_rdv,
       motif: rdv.motif || '',
@@ -134,7 +128,9 @@ function RendezVous() {
           onClick={() => {
             setEditingRdv(null);
             setFormData({
-              patient_id: '',
+              nom: '',
+              prenom: '',
+              telephone: '',
               date_rdv: selectedDate,
               heure_rdv: '',
               motif: '',
@@ -200,17 +196,17 @@ function RendezVous() {
                           <div className="flex items-center gap-2 mb-2">
                             <User className="w-5 h-5 text-primary-600" />
                             <h4 className="font-semibold text-gray-800 text-lg">
-                              {rdv.patients?.nom} {rdv.patients?.prenom}
+                              {rdv.nom} {rdv.prenom}
                             </h4>
                           </div>
+                          {rdv.telephone && (
+                            <p className="text-gray-700 mb-1">
+                              <span className="font-medium">📞 Tél:</span> {rdv.telephone}
+                            </p>
+                          )}
                           {rdv.motif && (
                             <p className="text-gray-700 mb-1">
                               <span className="font-medium">Motif:</span> {rdv.motif}
-                            </p>
-                          )}
-                          {rdv.patients?.telephone && (
-                            <p className="text-sm text-gray-600">
-                              <span className="font-medium">Tél:</span> {rdv.patients.telephone}
                             </p>
                           )}
                           {rdv.notes && (
@@ -252,23 +248,44 @@ function RendezVous() {
             </h2>
             
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">
+                    Nom *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.nom}
+                    onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">
+                    Prénom *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.prenom}
+                    onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="block text-gray-700 font-medium mb-2">
-                  Patient *
+                  Téléphone
                 </label>
-                <select
-                  required
-                  value={formData.patient_id}
-                  onChange={(e) => setFormData({ ...formData, patient_id: e.target.value })}
+                <input
+                  type="tel"
+                  value={formData.telephone}
+                  onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
+                  placeholder="Ex: 0612345678"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                >
-                  <option value="">Sélectionner un patient</option>
-                  {patients.map((patient) => (
-                    <option key={patient.id} value={patient.id}>
-                      {patient.nom} {patient.prenom} - {patient.cin}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">

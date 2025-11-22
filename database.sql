@@ -45,7 +45,9 @@ CREATE TABLE IF NOT EXISTS consultations (
 -- Table: rendezvous
 CREATE TABLE IF NOT EXISTS rendezvous (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    patient_id UUID NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+    nom VARCHAR(100) NOT NULL,
+    prenom VARCHAR(100) NOT NULL,
+    telephone VARCHAR(20),
     date_rdv DATE NOT NULL,
     heure_rdv TIME NOT NULL,
     motif VARCHAR(200),
@@ -82,7 +84,7 @@ CREATE TABLE IF NOT EXISTS controles (
 -- Index pour améliorer les performances
 CREATE INDEX IF NOT EXISTS idx_consultations_patient ON consultations(patient_id);
 CREATE INDEX IF NOT EXISTS idx_consultations_date ON consultations(date_consultation);
-CREATE INDEX IF NOT EXISTS idx_rendezvous_patient ON rendezvous(patient_id);
+CREATE INDEX IF NOT EXISTS idx_rendezvous_nom ON rendezvous(nom);
 CREATE INDEX IF NOT EXISTS idx_rendezvous_date ON rendezvous(date_rdv);
 CREATE INDEX IF NOT EXISTS idx_paiements_patient ON paiements(patient_id);
 CREATE INDEX IF NOT EXISTS idx_paiements_date ON paiements(date_paiement);
