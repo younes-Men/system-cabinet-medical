@@ -59,10 +59,20 @@ function Patients() {
       
       const method = editingPatient ? 'PUT' : 'POST';
       
+      // Nettoyer les données : convertir les chaînes vides en null pour les champs optionnels
+      const cleanedData = {
+        nom: formData.nom.trim(),
+        prenom: formData.prenom.trim(),
+        cin: formData.cin.trim() || null,
+        telephone: formData.telephone.trim(),
+        date_naissance: formData.date_naissance || null,
+        adresse: formData.adresse.trim() || null
+      };
+      
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(cleanedData)
       });
 
       if (response.ok) {
@@ -77,6 +87,9 @@ function Patients() {
           adresse: ''
         });
         fetchPatients();
+      } else {
+        const errorData = await response.json();
+        alert('Erreur lors de la sauvegarde: ' + (errorData.error || 'Erreur inconnue'));
       }
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);

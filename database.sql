@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS patients (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nom VARCHAR(100) NOT NULL,
     prenom VARCHAR(100) NOT NULL,
-    cin VARCHAR(20) UNIQUE NOT NULL,
+    cin VARCHAR(20) UNIQUE,
     telephone VARCHAR(20) NOT NULL,
     date_naissance DATE,
     adresse TEXT,

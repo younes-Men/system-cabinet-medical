@@ -193,9 +193,19 @@ app.get('/api/patients/:id', async (req, res) => {
 
 app.post('/api/patients', async (req, res) => {
   try {
+    // Nettoyer les valeurs : convertir les chaînes vides en null pour les champs optionnels
+    const patientData = {
+      nom: req.body.nom?.trim() || null,
+      prenom: req.body.prenom?.trim() || null,
+      cin: req.body.cin && req.body.cin.trim() ? req.body.cin.trim() : null,
+      telephone: req.body.telephone?.trim() || null,
+      date_naissance: req.body.date_naissance || null,
+      adresse: req.body.adresse && req.body.adresse.trim() ? req.body.adresse.trim() : null
+    };
+
     const { data, error } = await supabase
       .from('patients')
-      .insert([req.body])
+      .insert([patientData])
       .select()
       .single();
     
@@ -208,9 +218,31 @@ app.post('/api/patients', async (req, res) => {
 
 app.put('/api/patients/:id', async (req, res) => {
   try {
+    // Nettoyer les valeurs : convertir les chaînes vides en null pour les champs optionnels
+    const updateData = {};
+    
+    if (req.body.nom !== undefined) {
+      updateData.nom = req.body.nom?.trim() || null;
+    }
+    if (req.body.prenom !== undefined) {
+      updateData.prenom = req.body.prenom?.trim() || null;
+    }
+    if (req.body.cin !== undefined) {
+      updateData.cin = req.body.cin && req.body.cin.trim() ? req.body.cin.trim() : null;
+    }
+    if (req.body.telephone !== undefined) {
+      updateData.telephone = req.body.telephone?.trim() || null;
+    }
+    if (req.body.date_naissance !== undefined) {
+      updateData.date_naissance = req.body.date_naissance || null;
+    }
+    if (req.body.adresse !== undefined) {
+      updateData.adresse = req.body.adresse && req.body.adresse.trim() ? req.body.adresse.trim() : null;
+    }
+
     const { data, error } = await supabase
       .from('patients')
-      .update(req.body)
+      .update(updateData)
       .eq('id', req.params.id)
       .select()
       .single();
