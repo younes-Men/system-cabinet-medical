@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// Initialize Supabase client
+
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
 
@@ -22,7 +22,7 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// ========== AUTHENTICATION ROUTES ==========
+
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -42,8 +42,7 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Nom d\'utilisateur ou mot de passe incorrect' });
     }
 
-    // Vérification du mot de passe (simple comparaison pour l'instant)
-    // En production, utilisez bcrypt pour hasher les mots de passe
+    
     if (data.password !== password) {
       return res.status(401).json({ error: 'Nom d\'utilisateur ou mot de passe incorrect' });
     }

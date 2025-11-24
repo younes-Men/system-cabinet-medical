@@ -24,7 +24,6 @@ CREATE TABLE IF NOT EXISTS patients (
     telephone VARCHAR(20) NOT NULL,
     date_naissance DATE,
     adresse TEXT,
-    email VARCHAR(100),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

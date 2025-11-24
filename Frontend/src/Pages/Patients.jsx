@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Plus, Edit, Trash2, Eye, UserPlus } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, Eye, UserPlus, Download } from 'lucide-react';
 import API_URL from '../config/api';
+import exportLPatient from '../lib/exportPatientExcelFile';
 
 function Patients() {
   const [patients, setPatients] = useState([]);
@@ -15,8 +16,7 @@ function Patients() {
     cin: '',
     telephone: '',
     date_naissance: '',
-    adresse: '',
-    email: ''
+    adresse: ''
   });
 
   useEffect(() => {
@@ -74,8 +74,7 @@ function Patients() {
           cin: '',
           telephone: '',
           date_naissance: '',
-          adresse: '',
-          email: ''
+          adresse: ''
         });
         fetchPatients();
       }
@@ -93,8 +92,7 @@ function Patients() {
       cin: patient.cin || '',
       telephone: patient.telephone || '',
       date_naissance: patient.date_naissance || '',
-      adresse: patient.adresse || '',
-      email: patient.email || ''
+      adresse: patient.adresse || ''
     });
     setShowModal(true);
   };
@@ -118,6 +116,47 @@ function Patients() {
     }
   };
 
+  const handleExportExcel = async () => {
+    try {
+      const response = await fetch(`${API_URL}/export/patients`, {
+        method: 'GET'
+      });
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de l\'export');
+      }
+
+      // Récupérer le blob
+      const blob = await response.blob();
+      
+      // Créer un lien de téléchargement
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Extraire le nom du fichier depuis les headers ou utiliser un nom par défaut
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let fileName = 'patients_export.xlsx';
+      if (contentDisposition) {
+        const fileNameMatch = contentDisposition.match(/filename="(.+)"/);
+        if (fileNameMatch) {
+          fileName = fileNameMatch[1];
+        }
+      }
+      
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      alert('Export Excel réussi ! Le fichier a été téléchargé.');
+    } catch (error) {
+      console.error('Erreur lors de l\'export Excel:', error);
+      alert('Erreur lors de l\'export Excel: ' + error.message);
+    }
+  };
+
   const filteredPatients = patients.filter(patient =>
     patient.nom?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     patient.prenom?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -133,25 +172,33 @@ function Patients() {
     <div>
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-800">Gestion des Patients</h1>
-        <button
-          onClick={() => {
-            setEditingPatient(null);
-            setFormData({
-              nom: '',
-              prenom: '',
-              cin: '',
-              telephone: '',
-              date_naissance: '',
-              adresse: '',
-              email: ''
-            });
-            setShowModal(true);
-          }}
-          className="bg-primary-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors flex items-center gap-2 shadow-md"
-        >
-          <UserPlus className="w-5 h-5" />
-          Nouveau Patient
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={()=> exportLPatient()}
+            className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center gap-2 shadow-md"
+          >
+            <Download className="w-5 h-5" />
+            Exporter en Excel
+          </button>
+          <button
+            onClick={() => {
+              setEditingPatient(null);
+              setFormData({
+                nom: '',
+                prenom: '',
+                cin: '',
+                telephone: '',
+                date_naissance: '',
+                adresse: ''
+              });
+              setShowModal(true);
+            }}
+            className="bg-primary-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors flex items-center gap-2 shadow-md"
+          >
+            <UserPlus className="w-5 h-5" />
+            Nouveau Patient
+          </button>
+        </div>
       </div>
 
       {/* Barre de recherche */}
